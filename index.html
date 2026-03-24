@@ -51,79 +51,86 @@
         <div id="shop-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10"></div>
     </main>
 
-    <script>
-        const _supabase = supabase.createClient('https://daoctgxvndqkjkethjcc.supabase.co', 'sb_publishable_G-9m4zalYE3mRzDpw2OiCQ_qFMxk9ec');
-        let cart = [];
+    <script src="https://www.paypal.com/sdk/js?client-id=test&currency=USD"></script>
 
-        async function loadStore() {
-            const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
-            if (error) return;
-            renderProducts(data);
-        }
+<div id="cart-sidebar" class="fixed top-0 right-0 h-full w-full md:w-96 bg-white shadow-2xl z-[100] cart-sidebar p-8 flex flex-col translate-x-full transition-transform duration-300">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-black italic">YOUR CART</h2>
+            <button id="close-cart" class="text-xl font-bold">✕</button>
+        </div>
+        
+        <div id="cart-items" class="flex-grow overflow-y-auto space-y-4"></div>
 
-        function renderProducts(products) {
-            document.getElementById('shop-container').innerHTML = products.map(p => `
-                <div class="group border border-gray-100 p-4 rounded-3xl">
-                    <div class="aspect-[3/4] bg-gray-100 rounded-2xl overflow-hidden mb-4 relative">
-                        <img src="${p.image_url}" class="w-full h-full object-cover">
-                        <button onclick="addToCart('${p.id}', '${p.name}', ${p.price})" class="absolute bottom-4 left-4 right-4 bg-black text-white py-3 rounded-xl font-bold text-[10px] hover:bg-gray-800 transition">ADD TO CART +</button>
-                    </div>
-                    <h3 class="font-bold text-xs uppercase tracking-widest text-gray-500">${p.category || 'Drop'}</h3>
-                    <p class="font-black text-lg">${p.name}</p>
-                    <p class="text-gray-900 font-bold">$${p.price}</p>
+        <div class="border-t pt-6 mt-6">
+            <div class="flex justify-between text-xl font-black mb-6">
+                <span>TOTAL</span>
+                <span id="cart-total">$0</span>
+            </div>
+            
+            <div id="paypal-button-container"></div>
+        </div>
+    </div>
+
+<script>
+    // ... (Tu configuración de Supabase y loadStore igual que antes) ...
+
+    let cart = [];
+
+    function updateCartUI() {
+        const container = document.getElementById('cart-items');
+        const totalElement = document.getElementById('cart-total');
+        const count = document.getElementById('cart-count');
+        
+        count.innerText = cart.length;
+        const total = cart.reduce((acc, item) => acc + item.price, 0);
+        totalElement.innerText = `$${total}`;
+
+        container.innerHTML = cart.map(item => `
+            <div class="flex justify-between items-center border-b pb-4">
+                <div>
+                    <p class="font-bold text-sm uppercase">${item.name}</p>
+                    <p class="text-gray-500 text-xs">$${item.price}</p>
                 </div>
-            `).join('');
-        }
+                <button onclick="removeFromCart(${item.cartId})" class="text-red-500 text-[10px] font-bold">REMOVE</button>
+            </div>
+        `).join('');
 
-        function addToCart(id, name, price) {
-            cart.push({ id, name, price, cartId: Date.now() });
-            updateCartUI();
-            document.getElementById('cart-sidebar').classList.add('open');
-        }
+        // RENDERIZAR BOTONES DE PAYPAL SOLO SI HAY ITEMS
+        renderPayPalButtons(total);
+    }
 
-        function removeFromCart(cartId) {
-            cart = cart.filter(item => item.cartId !== cartId);
-            updateCartUI();
-        }
+    function renderPayPalButtons(totalAmount) {
+        // Limpiamos el contenedor para que no se dupliquen los botones
+        document.getElementById('paypal-button-container').innerHTML = "";
+        
+        if (totalAmount <= 0) return;
 
-        function updateCartUI() {
-            const container = document.getElementById('cart-items');
-            const count = document.getElementById('cart-count');
-            const total = document.getElementById('cart-total');
-            
-            count.innerText = cart.length;
-            
-            if (cart.length === 0) {
-                container.innerHTML = `<p class="text-gray-400 text-center mt-10 uppercase text-xs tracking-widest">Cart is empty</p>`;
-                total.innerText = "$0";
-                return;
+        paypal.Buttons({
+            createOrder: (data, actions) => {
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: totalAmount.toString()
+                        }
+                    }]
+                });
+            },
+            onApprove: (data, actions) => {
+                return actions.order.capture().then(details => {
+                    alert('Transaction completed by ' + details.payer.name.given_name);
+                    cart = []; // Limpiar carrito tras el pago
+                    updateCartUI();
+                    document.getElementById('cart-sidebar').classList.remove('open');
+                });
             }
+        }).render('#paypal-button-container');
+    }
 
-            container.innerHTML = cart.map(item => `
-                <div class="flex justify-between items-center border-b pb-4">
-                    <div>
-                        <p class="font-black text-sm uppercase">${item.name}</p>
-                        <p class="text-gray-500">$${item.price}</p>
-                    </div>
-                    <button onclick="removeFromCart(${item.cartId})" class="text-red-500 text-xs font-bold hover:underline">REMOVE</button>
-                </div>
-            `).join('');
+    // Funciones de control de sidebar
+    document.getElementById('open-cart').onclick = () => document.getElementById('cart-sidebar').classList.add('open');
+    document.getElementById('close-cart').onclick = () => document.getElementById('cart-sidebar').classList.remove('open');
 
-            const sum = cart.reduce((acc, item) => acc + item.price, 0);
-            total.innerText = `$${sum}`;
-        }
-
-        // Checkout Logic
-        function processPayment() {
-            alert("Redirecting to Secure Payment Gateway (Mercado Pago)...");
-            // Aquí es donde conectaríamos con el link de pago de Mercado Pago
-        }
-
-        // Sidebar Controls
-        document.getElementById('open-cart').onclick = () => document.getElementById('cart-sidebar').classList.add('open');
-        document.getElementById('close-cart').onclick = () => document.getElementById('cart-sidebar').classList.remove('open');
-
-        loadStore();
-    </script>
+    // ... (El resto de tus funciones loadStore, addToCart, etc) ...
+</script>
 </body>
 </html>
