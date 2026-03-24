@@ -3,64 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NCS ADMIN | Panel</title>
+    <title>NCS ADMIN | Secure Access</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { display: none; } /* Oculta todo hasta que pongas la clave */
+    </style>
 </head>
 <body class="bg-gray-100 p-8 font-sans">
 
     <div class="max-w-2xl mx-auto">
         <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-black italic">NCS ADMIN PANEL</h1>
-            <a href="index.html" class="text-xs font-bold bg-black text-white px-4 py-2 rounded-full uppercase">Go to Store</a>
+            <h1 class="text-3xl font-black italic uppercase tracking-tighter">NCS ADMIN PANEL</h1>
+            <a href="index.html" class="text-[10px] font-bold bg-black text-white px-4 py-2 rounded-full uppercase">Back to Store</a>
         </div>
 
-        <div class="bg-white p-8 rounded-3xl shadow-xl">
-            <h2 class="text-xl font-bold mb-6 uppercase tracking-tight">Upload New Product</h2>
+        <div class="bg-white p-8 rounded-3xl shadow-xl border border-gray-200">
+            <h2 class="text-xl font-black mb-6 uppercase tracking-tight">Add New Product to Drop</h2>
             
             <form id="upload-form" class="space-y-4">
                 <div>
-                    <label class="block text-[10px] font-bold uppercase mb-1">Product Name</label>
-                    <input type="text" id="name" placeholder="E.g. Vintage Oversized Tee" class="w-full p-4 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-black outline-none" required>
+                    <label class="block text-[10px] font-bold uppercase mb-1 text-gray-400">Product Name</label>
+                    <input type="text" id="name" placeholder="E.g. NCS TECH OVERSIZE" class="w-full p-4 border rounded-2xl bg-gray-50 font-bold focus:ring-2 focus:ring-black outline-none" required>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[10px] font-bold uppercase mb-1">Sale Price ($)</label>
-                        <input type="number" id="price" placeholder="25" class="w-full p-4 border rounded-xl bg-gray-50 outline-none" required>
+                        <label class="block text-[10px] font-bold uppercase mb-1 text-gray-400">Sale Price ($)</label>
+                        <input type="number" id="price" placeholder="50" class="w-full p-4 border rounded-2xl bg-gray-50 font-bold outline-none" required>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold uppercase mb-1 text-red-500">Old Price (For Sale/Rebaja)</label>
-                        <input type="number" id="old_price" placeholder="40" class="w-full p-4 border rounded-xl bg-gray-50 outline-none">
+                        <label class="block text-[10px] font-bold uppercase mb-1 text-red-500">Old Price (Optional $)</label>
+                        <input type="number" id="old_price" placeholder="85" class="w-full p-4 border rounded-2xl bg-gray-50 font-bold outline-none">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold uppercase mb-1">Category</label>
-                    <select id="category" class="w-full p-4 border rounded-xl bg-gray-50 outline-none">
-                        <option value="T-Shirts">T-Shirts</option>
-                        <option value="Pants">Pants</option>
-                        <option value="Jackets">Jackets</option>
-                        <option value="Accessories">Accessories</option>
+                    <label class="block text-[10px] font-bold uppercase mb-1 text-gray-400">Category Selection</label>
+                    <select id="category" class="w-full p-4 border rounded-2xl bg-gray-50 font-bold outline-none appearance-none">
+                        <option value="T-Shirts">T-SHIRTS</option>
+                        <option value="Pants">PANTS</option>
+                        <option value="Jackets">JACKETS</option>
+                        <option value="Accessories">ACCESSORIES</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold uppercase mb-1">Image URL</label>
-                    <input type="url" id="image_url" placeholder="https://..." class="w-full p-4 border rounded-xl bg-gray-50 outline-none" required>
+                    <label class="block text-[10px] font-bold uppercase mb-1 text-gray-400">Image URL</label>
+                    <input type="url" id="image_url" placeholder="Paste link here..." class="w-full p-4 border rounded-2xl bg-gray-50 font-medium outline-none" required>
                 </div>
 
-                <button type="submit" class="w-full bg-black text-white p-5 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-800 transition shadow-lg">
-                    Upload to Collection
+                <button type="submit" class="w-full bg-black text-white p-5 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-900 active:scale-95 transition shadow-lg">
+                    Confirm Drop Item
                 </button>
             </form>
             
-            <p id="status" class="mt-4 text-center font-bold uppercase text-xs"></p>
+            <p id="status" class="mt-4 text-center font-bold uppercase text-[10px] tracking-widest"></p>
         </div>
     </div>
 
     <script>
-        // Configuración de Supabase
+        // 1. SISTEMA DE CONTRASEÑA
+        // Cambiá "NCS2026" por la contraseña que vos quieras
+        const CLAVE_MAESTRA = "NCS2026"; 
+        
+        function checkAccess() {
+            const pass = prompt("Enter Admin Password:");
+            if (pass === CLAVE_MAESTRA) {
+                document.body.style.display = "block"; // Muestra la página
+            } else {
+                alert("Access Denied");
+                window.location.href = "index.html"; // Lo manda a la tienda si falla
+            }
+        }
+
+        // Ejecutar al cargar
+        checkAccess();
+
+        // 2. CONFIGURACIÓN SUPABASE
         const _supabase = supabase.createClient('https://daoctgxvndqkjkethjcc.supabase.co', 'sb_publishable_G-9m4zalYE3mRzDpw2OiCQ_qFMxk9ec');
 
         const form = document.getElementById('upload-form');
@@ -68,8 +88,8 @@
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            status.innerText = "Processing...";
-            status.className = "mt-4 text-center font-bold text-gray-400";
+            status.innerText = "UPDATING DATABASE...";
+            status.className = "mt-4 text-center font-bold text-gray-400 animate-pulse";
 
             const name = document.getElementById('name').value;
             const price = parseFloat(document.getElementById('price').value);
@@ -79,15 +99,13 @@
 
             const { data, error } = await _supabase
                 .from('products')
-                .insert([
-                    { name, price, old_price, category, image_url }
-                ]);
+                .insert([{ name, price, old_price, category, image_url }]);
 
             if (error) {
-                status.innerText = "Error: " + error.message;
+                status.innerText = "ERROR: " + error.message;
                 status.className = "mt-4 text-center font-bold text-red-500";
             } else {
-                status.innerText = "Successfully uploaded to NCS Store!";
+                status.innerText = "ITEM ADDED SUCCESSFULLY!";
                 status.className = "mt-4 text-center font-bold text-green-500";
                 form.reset();
             }
