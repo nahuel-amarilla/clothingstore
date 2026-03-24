@@ -8,98 +8,120 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
-        .active-filter { background: black !important; color: white !important; }
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .cart-sidebar { transition: transform 0.3s ease-in-out; transform: translateX(100%); }
+        .cart-sidebar.open { transform: translateX(0); }
     </style>
 </head>
 <body class="bg-white">
 
     <nav class="p-6 flex justify-between items-center border-b sticky top-0 bg-white/90 backdrop-blur-md z-50">
         <h1 class="text-2xl font-black tracking-tighter italic">NCS CLOTHING</h1>
-        <div id="cart-btn" class="cursor-pointer bg-black text-white px-6 py-2 rounded-full text-xs font-bold hover:scale-105 transition">
+        <div id="open-cart" class="cursor-pointer bg-black text-white px-6 py-2 rounded-full text-xs font-bold hover:scale-105 transition">
             CART (<span id="cart-count">0</span>)
         </div>
     </nav>
 
-    <div class="flex justify-center gap-4 py-8 overflow-x-auto px-4">
-        <button onclick="filterProducts('all')" class="filter-btn active-filter border border-black px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest">All</button>
-        <button onclick="filterProducts('T-Shirts')" class="filter-btn border border-gray-200 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest hover:border-black">T-Shirts</button>
-        <button onclick="filterProducts('Pants')" class="filter-btn border border-gray-200 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest hover:border-black">Pants</button>
-        <button onclick="filterProducts('Jackets')" class="filter-btn border border-gray-200 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest hover:border-black">Jackets</button>
+    <div id="cart-sidebar" class="fixed top-0 right-0 h-full w-full md:w-96 bg-white shadow-2xl z-[100] cart-sidebar p-8 flex flex-col">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-black italic">YOUR CART</h2>
+            <button id="close-cart" class="text-xl font-bold">✕</button>
+        </div>
+        
+        <div id="cart-items" class="flex-grow overflow-y-auto space-y-4">
+            </div>
+
+        <div class="border-t pt-6 mt-6">
+            <div class="flex justify-between text-xl font-black mb-6">
+                <span>TOTAL</span>
+                <span id="cart-total">$0</span>
+            </div>
+            <button onclick="processPayment()" class="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition uppercase tracking-widest">
+                Checkout (Card/Debit)
+            </button>
+        </div>
     </div>
 
-    <header class="text-center py-10 px-4">
-        <h2 class="text-6xl md:text-8xl font-black italic tracking-tighter mb-4">ESSENTIALS</h2>
-        <p class="text-gray-400 uppercase tracking-[0.3em] text-[10px]">Safety & Streetwear Collection 2026</p>
+    <header class="text-center py-12">
+        <h2 class="text-7xl md:text-9xl font-black italic tracking-tighter">NCS</h2>
+        <p class="text-gray-400 uppercase tracking-[0.4em] text-[10px] mt-2">Premium Safety & Streetwear</p>
     </header>
 
-    <main class="max-w-7xl mx-auto p-6">
-        <div id="shop-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-            </div>
+    <main class="max-w-7xl mx-auto p-6 mb-20">
+        <div id="shop-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10"></div>
     </main>
 
     <script>
         const _supabase = supabase.createClient('https://daoctgxvndqkjkethjcc.supabase.co', 'sb_publishable_G-9m4zalYE3mRzDpw2OiCQ_qFMxk9ec');
-        let allProducts = [];
         let cart = [];
 
         async function loadStore() {
             const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
             if (error) return;
-            allProducts = data;
-            renderProducts(allProducts);
+            renderProducts(data);
         }
 
         function renderProducts(products) {
-            const container = document.getElementById('shop-container');
-            container.innerHTML = products.map(p => `
-                <div class="group">
+            document.getElementById('shop-container').innerHTML = products.map(p => `
+                <div class="group border border-gray-100 p-4 rounded-3xl">
                     <div class="aspect-[3/4] bg-gray-100 rounded-2xl overflow-hidden mb-4 relative">
-                        <img src="${p.image_url}" class="w-full h-full object-cover group-hover:scale-110 transition duration-700">
-                        <button onclick="addToCart('${p.id}', '${p.name}', ${p.price})" class="absolute bottom-4 left-4 right-4 bg-white text-black py-3 rounded-xl font-bold text-xs opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
-                            QUICK ADD +
-                        </button>
+                        <img src="${p.image_url}" class="w-full h-full object-cover">
+                        <button onclick="addToCart('${p.id}', '${p.name}', ${p.price})" class="absolute bottom-4 left-4 right-4 bg-black text-white py-3 rounded-xl font-bold text-[10px] hover:bg-gray-800 transition">ADD TO CART +</button>
                     </div>
-                    <h3 class="font-bold text-sm uppercase tracking-tight">${p.name}</h3>
-                    <p class="text-gray-900 font-black mt-1">$${p.price}</p>
+                    <h3 class="font-bold text-xs uppercase tracking-widest text-gray-500">${p.category || 'Drop'}</h3>
+                    <p class="font-black text-lg">${p.name}</p>
+                    <p class="text-gray-900 font-bold">$${p.price}</p>
                 </div>
             `).join('');
         }
 
-        function filterProducts(category) {
-            // Update buttons style
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active-filter'));
-            event.target.classList.add('active-filter');
-
-            if (category === 'all') {
-                renderProducts(allProducts);
-            } else {
-                const filtered = allProducts.filter(p => p.category === category);
-                renderProducts(filtered);
-            }
-        }
-
         function addToCart(id, name, price) {
-            cart.push({ id, name, price });
-            document.getElementById('cart-count').innerText = cart.length;
+            cart.push({ id, name, price, cartId: Date.now() });
+            updateCartUI();
+            document.getElementById('cart-sidebar').classList.add('open');
         }
 
-        // WhatsApp Checkout
-        document.getElementById('cart-btn').addEventListener('click', () => {
-            if (cart.length === 0) return alert("Your cart is empty");
+        function removeFromCart(cartId) {
+            cart = cart.filter(item => item.cartId !== cartId);
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cart-items');
+            const count = document.getElementById('cart-count');
+            const total = document.getElementById('cart-total');
             
-            let message = "NEW ORDER - NCS CLOTHING\n\n";
-            let total = 0;
-            cart.forEach(item => {
-                message += `- ${item.name}: $${item.price}\n`;
-                total += item.price;
-            });
-            message += `\nTOTAL: $${total}\n\nCan you help me with the payment?`;
+            count.innerText = cart.length;
             
-            // Reemplaza con TU numero de WhatsApp (Ej: 54911...)
-            const phoneNumber = "5491100000000"; 
-            window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`);
-        });
+            if (cart.length === 0) {
+                container.innerHTML = `<p class="text-gray-400 text-center mt-10 uppercase text-xs tracking-widest">Cart is empty</p>`;
+                total.innerText = "$0";
+                return;
+            }
+
+            container.innerHTML = cart.map(item => `
+                <div class="flex justify-between items-center border-b pb-4">
+                    <div>
+                        <p class="font-black text-sm uppercase">${item.name}</p>
+                        <p class="text-gray-500">$${item.price}</p>
+                    </div>
+                    <button onclick="removeFromCart(${item.cartId})" class="text-red-500 text-xs font-bold hover:underline">REMOVE</button>
+                </div>
+            `).join('');
+
+            const sum = cart.reduce((acc, item) => acc + item.price, 0);
+            total.innerText = `$${sum}`;
+        }
+
+        // Checkout Logic
+        function processPayment() {
+            alert("Redirecting to Secure Payment Gateway (Mercado Pago)...");
+            // Aquí es donde conectaríamos con el link de pago de Mercado Pago
+        }
+
+        // Sidebar Controls
+        document.getElementById('open-cart').onclick = () => document.getElementById('cart-sidebar').classList.add('open');
+        document.getElementById('close-cart').onclick = () => document.getElementById('cart-sidebar').classList.remove('open');
 
         loadStore();
     </script>
