@@ -12,16 +12,15 @@
         body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
         .sidebar { transition: transform 0.3s ease-in-out; z-index: 100; }
         .sidebar-open { transform: translateX(0) !important; }
+        .admin-only { display: none; } /* Oculto por defecto */
     </style>
 </head>
 <body class="bg-white text-black">
 
-    <nav class="p-6 flex justify-between items-center border-b sticky top-0 bg-white/90 backdrop-blur-md z-[60]">
-        <button id="open-menu" class="text-2xl font-bold">☰</button>
-        
-        <h1 class="text-2xl font-black tracking-tighter italic absolute left-1/2 -translate-x-1/2">NCS CLOTHING</h1>
-        
-        <div id="open-cart" class="cursor-pointer bg-black text-white px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest">
+    <nav class="p-4 md:p-6 grid grid-cols-3 items-center border-b sticky top-0 bg-white/90 backdrop-blur-md z-[60]">
+        <button id="open-menu" class="text-xl justify-self-start font-bold">☰</button>
+        <h1 class="text-lg md:text-2xl font-black tracking-tighter italic text-center whitespace-nowrap">NCS CLOTHING</h1>
+        <div id="open-cart" class="cursor-pointer bg-black text-white px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest justify-self-end">
             Cart (<span id="cart-count">0</span>)
         </div>
     </nav>
@@ -33,13 +32,11 @@
         </div>
         <nav class="space-y-6">
             <button onclick="filterProducts('all')" class="block text-2xl font-bold hover:italic">ALL COLLECTION</button>
-            <button onclick="filterProducts('T-Shirts')" class="block text-2xl font-bold hover:italic text-gray-400 hover:text-black">T-SHIRTS</button>
-            <button onclick="filterProducts('Pants')" class="block text-2xl font-bold hover:italic text-gray-400 hover:text-black">PANTS</button>
-            <button onclick="filterProducts('Jackets')" class="block text-2xl font-bold hover:italic text-gray-400 hover:text-black">JACKETS</button>
+            <button onclick="filterProducts('T-Shirts')" class="block text-2xl font-bold text-gray-400 hover:text-black">T-SHIRTS</button>
+            <button onclick="filterProducts('Pants')" class="block text-2xl font-bold text-gray-400 hover:text-black">PANTS</button>
+            <button onclick="filterProducts('Jackets')" class="block text-2xl font-bold text-gray-400 hover:text-black">JACKETS</button>
         </nav>
-        <div class="mt-auto text-[10px] text-gray-400 uppercase tracking-widest">
-            NCS Safety & Streetwear © 2026
-        </div>
+        <button onclick="enableAdminMode()" class="mt-auto text-[8px] text-gray-200 text-left uppercase">Admin Mode</button>
     </div>
 
     <div id="cart-sidebar" class="fixed top-0 right-0 h-full w-full md:w-96 bg-white shadow-2xl translate-x-full sidebar p-8 flex flex-col border-l">
@@ -48,23 +45,21 @@
             <button id="close-cart" class="text-xl">✕</button>
         </div>
         <div id="cart-items" class="flex-grow overflow-y-auto space-y-4"></div>
-        <div class="border-t pt-6">
-            <div class="flex justify-between text-xl font-black mb-6">
-                <span>TOTAL</span>
-                <span id="cart-total">$0</span>
-            </div>
+        <div class="border-t pt-4 mt-4">
+            <div class="flex justify-between text-xl font-black mb-6"><span>TOTAL</span><span id="cart-total">$0</span></div>
             <div id="paypal-button-container"></div>
         </div>
     </div>
 
-    <main class="max-w-7xl mx-auto p-6 mt-10 mb-20">
-        <div id="shop-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12"></div>
+    <main class="max-w-7xl mx-auto p-4 md:p-6 mt-6 mb-20">
+        <div id="shop-container" class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-10"></div>
     </main>
 
     <script>
         const _supabase = supabase.createClient('https://daoctgxvndqkjkethjcc.supabase.co', 'sb_publishable_G-9m4zalYE3mRzDpw2OiCQ_qFMxk9ec');
         let allProducts = [];
         let cart = [];
+        let isAdmin = false;
 
         async function loadStore() {
             const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
@@ -75,29 +70,60 @@
 
         function renderProducts(products) {
             const container = document.getElementById('shop-container');
-            container.innerHTML = products.map(p => `
-                <div class="group">
-                    <div class="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden mb-4 relative">
+            container.innerHTML = products.map(p => {
+                // LÓGICA DE REBAJA: Verificamos si existe old_price y si es mayor al precio actual
+                const hasSale = p.old_price && Number(p.old_price) > Number(p.price);
+                
+                return `
+                <div class="group relative" id="prod-${p.id}">
+                    <div class="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden mb-3 relative">
+                        ${hasSale ? `<span class="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-bold px-2 py-1 rounded-full z-10 uppercase">Sale</span>` : ''}
+                        
+                        <button onclick="deleteProduct('${p.id}')" class="admin-only absolute top-2 right-2 bg-white/80 hover:bg-red-500 hover:text-white p-2 rounded-full z-20 transition shadow-sm text-[10px]">✕</button>
+
                         <img src="${p.image_url}" class="w-full h-full object-cover group-hover:scale-105 transition duration-700">
-                        <button onclick="addToCart('${p.id}', '${p.name}', ${p.price})" class="absolute bottom-4 left-4 right-4 bg-black text-white py-4 rounded-xl font-bold text-[10px] uppercase opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all">
-                            Add to Cart +
-                        </button>
+                        <button onclick="addToCart('${p.id}', '${p.name}', ${p.price})" class="absolute bottom-2 left-2 right-2 bg-black text-white py-3 rounded-xl font-bold text-[9px] uppercase opacity-0 group-hover:opacity-100 transition-all">ADD +</button>
                     </div>
-                    <p class="text-[9px] text-gray-400 uppercase tracking-[0.2em] mb-1">${p.category || 'Drop'}</p>
-                    <h3 class="font-bold text-sm uppercase">${p.name}</h3>
-                    <p class="font-bold text-gray-900 mt-1">$${p.price}</p>
+                    <h3 class="font-bold text-[10px] md:text-sm uppercase truncate">${p.name}</h3>
+                    <div class="flex gap-2 items-center">
+                        <p class="font-black text-sm">$${p.price}</p>
+                        ${hasSale ? `<p class="text-[10px] text-gray-400 line-through font-bold">$${p.old_price}</p>` : ''}
+                    </div>
                 </div>
-            `).join('');
+            `}).join('');
+            
+            // Si el modo admin estaba activo, mostramos los botones de borrar
+            if(isAdmin) Array.from(document.getElementsByClassName('admin-only')).forEach(el => el.style.display = 'block');
         }
 
-        function filterProducts(category) {
-            document.getElementById('menu-sidebar').classList.remove('sidebar-open');
-            if (category === 'all') {
-                renderProducts(allProducts);
+        // FUNCIÓN PARA ELIMINAR PRODUCTO REAL
+        async function deleteProduct(id) {
+            if(!confirm("¿Estás seguro de eliminar este producto?")) return;
+            
+            const { error } = await _supabase.from('products').delete().eq('id', id);
+            
+            if (error) {
+                alert("Error eliminando: " + error.message);
             } else {
-                const filtered = allProducts.filter(p => p.category === category);
-                renderProducts(filtered);
+                document.getElementById(`prod-${id}`).remove();
+                allProducts = allProducts.filter(p => p.id !== id);
             }
+        }
+
+        // MODO ADMIN SECRETO (Clave: NCS2026)
+        function enableAdminMode() {
+            const pass = prompt("Admin Key:");
+            if(pass === "NCS2026") {
+                isAdmin = true;
+                Array.from(document.getElementsByClassName('admin-only')).forEach(el => el.style.display = 'block');
+                alert("Modo Admin Activado: Ahora podés borrar productos desde la X.");
+            }
+        }
+
+        // --- Resto de funciones (PayPal, Cart, Sidebars) igual que antes ---
+        function filterProducts(cat) { 
+            document.getElementById('menu-sidebar').classList.remove('sidebar-open');
+            renderProducts(cat === 'all' ? allProducts : allProducts.filter(p => p.category === cat));
         }
 
         function addToCart(id, name, price) {
@@ -114,43 +140,34 @@
         function updateCartUI() {
             const container = document.getElementById('cart-items');
             document.getElementById('cart-count').innerText = cart.length;
-            const total = cart.reduce((acc, item) => acc + item.price, 0);
+            let total = cart.reduce((acc, item) => acc + item.price, 0);
             document.getElementById('cart-total').innerText = `$${total}`;
 
             if (cart.length === 0) {
-                container.innerHTML = `<p class="text-gray-400 text-center mt-10 uppercase text-[10px] tracking-widest">Cart is empty</p>`;
+                container.innerHTML = `<p class="text-gray-400 text-center mt-10 text-[9px] uppercase">Cart Empty</p>`;
                 document.getElementById('paypal-button-container').innerHTML = "";
                 return;
             }
-
             container.innerHTML = cart.map(item => `
                 <div class="flex justify-between items-center border-b pb-4">
-                    <div>
-                        <p class="font-black text-xs uppercase">${item.name}</p>
-                        <p class="text-gray-500 text-[10px]">$${item.price}</p>
+                    <p class="font-black text-[10px] uppercase truncate w-2/3">${item.name}</p>
+                    <div class="flex items-center gap-4">
+                        <p class="text-[10px] font-bold">$${item.price}</p>
+                        <button onclick="removeFromCart(${item.cartId})" class="text-red-500 text-[10px]">✕</button>
                     </div>
-                    <button onclick="removeFromCart(${item.cartId})" class="text-red-500 text-[10px] font-black uppercase">Remove</button>
-                </div>
-            `).join('');
-
+                </div>`).join('');
             renderPayPalButtons(total);
         }
 
         function renderPayPalButtons(total) {
-            const container = document.getElementById('paypal-button-container');
-            container.innerHTML = "";
+            document.getElementById('paypal-button-container').innerHTML = "";
             paypal.Buttons({
                 style: { layout: 'vertical', color: 'black', shape: 'rect' },
                 createOrder: (data, actions) => actions.order.create({ purchase_units: [{ amount: { value: total.toString() } }] }),
-                onApprove: (data, actions) => actions.order.capture().then(details => {
-                    alert('Thanks ' + details.payer.name.given_name + '!');
-                    cart = []; updateCartUI();
-                    document.getElementById('cart-sidebar').classList.remove('sidebar-open');
-                })
+                onApprove: (data, actions) => actions.order.capture().then(() => { alert('Success!'); cart = []; updateCartUI(); })
             }).render('#paypal-button-container');
         }
 
-        // Controles de los Sidebar
         document.getElementById('open-menu').onclick = () => document.getElementById('menu-sidebar').classList.add('sidebar-open');
         document.getElementById('close-menu').onclick = () => document.getElementById('menu-sidebar').classList.remove('sidebar-open');
         document.getElementById('open-cart').onclick = () => document.getElementById('cart-sidebar').classList.add('sidebar-open');
