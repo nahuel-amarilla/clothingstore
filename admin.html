@@ -3,118 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NCS ADMIN | Inventory Management</title>
+    <title>NCS ADMIN | Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 p-4 md:p-10">
+<body class="bg-gray-100 p-8 font-sans">
 
-    <div class="max-w-2xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
-        <div class="bg-black p-8 text-center">
-            <h1 class="text-white text-2xl font-bold tracking-tighter">NCS <span class="text-slate-400 font-light">CLOTHING</span></h1>
-            <p class="text-slate-400 text-xs uppercase tracking-[0.2em] mt-2">Admin Control Panel</p>
+    <div class="max-w-2xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-black italic">NCS ADMIN PANEL</h1>
+            <a href="index.html" class="text-xs font-bold bg-black text-white px-4 py-2 rounded-full uppercase">Go to Store</a>
         </div>
 
-        <div id="login-section" class="p-8 space-y-4 text-center">
-            <h2 class="text-xl font-semibold">Security Check</h2>
-            <input type="password" id="admin-pass" placeholder="Enter Access Key" class="w-full p-4 bg-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-black transition">
-            <button onclick="checkAccess()" class="w-full bg-black text-white p-4 rounded-xl font-bold hover:bg-slate-800 transition">LOGIN</button>
+        <div class="bg-white p-8 rounded-3xl shadow-xl">
+            <h2 class="text-xl font-bold mb-6 uppercase tracking-tight">Upload New Product</h2>
+            
+            <form id="upload-form" class="space-y-4">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase mb-1">Product Name</label>
+                    <input type="text" id="name" placeholder="E.g. Vintage Oversized Tee" class="w-full p-4 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-black outline-none" required>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase mb-1">Sale Price ($)</label>
+                        <input type="number" id="price" placeholder="25" class="w-full p-4 border rounded-xl bg-gray-50 outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase mb-1 text-red-500">Old Price (For Sale/Rebaja)</label>
+                        <input type="number" id="old_price" placeholder="40" class="w-full p-4 border rounded-xl bg-gray-50 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold uppercase mb-1">Category</label>
+                    <select id="category" class="w-full p-4 border rounded-xl bg-gray-50 outline-none">
+                        <option value="T-Shirts">T-Shirts</option>
+                        <option value="Pants">Pants</option>
+                        <option value="Jackets">Jackets</option>
+                        <option value="Accessories">Accessories</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold uppercase mb-1">Image URL</label>
+                    <input type="url" id="image_url" placeholder="https://..." class="w-full p-4 border rounded-xl bg-gray-50 outline-none" required>
+                </div>
+
+                <button type="submit" class="w-full bg-black text-white p-5 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-800 transition shadow-lg">
+                    Upload to Collection
+                </button>
+            </form>
+            
+            <p id="status" class="mt-4 text-center font-bold uppercase text-xs"></p>
         </div>
-
-        <form id="product-form" class="hidden p-8 space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-[10px] font-black uppercase text-slate-400 mb-2">Product Name</label>
-                    <input type="text" id="product-name" required placeholder="e.g. Essential Black Hoodie" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-black">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-black uppercase text-slate-400 mb-2">Price (USD)</label>
-                    <input type="number" id="product-price" required placeholder="45.00" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-black">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-[10px] font-black uppercase text-slate-400 mb-2">Category</label>
-                <select id="product-category" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-black">
-                    <option value="T-Shirts">T-Shirts</option>
-                    <option value="Hoodies">Hoodies</option>
-                    <option value="Pants">Pants</option>
-                    <option value="Accessories">Accessories</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-[10px] font-black uppercase text-slate-400 mb-2">Product Image</label>
-                <input type="file" id="product-image" accept="image/*" required class="w-full p-4 bg-slate-50 border-dashed border-2 border-slate-200 rounded-xl cursor-pointer hover:border-black transition">
-            </div>
-
-            <button type="submit" id="submit-btn" class="w-full bg-blue-600 text-white p-5 rounded-2xl font-bold text-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transition transform hover:-translate-y-1">
-                UPLOAD PRODUCT
-            </button>
-        </form>
     </div>
 
     <script>
-        // Supabase Configuration
+        // Configuración de Supabase
         const _supabase = supabase.createClient('https://daoctgxvndqkjkethjcc.supabase.co', 'sb_publishable_G-9m4zalYE3mRzDpw2OiCQ_qFMxk9ec');
 
-        function checkAccess() {
-            const pass = document.getElementById('admin-pass').value;
-            if(pass === 'admin123') { // Change this to your preferred password
-                document.getElementById('login-section').classList.add('hidden');
-                document.getElementById('product-form').classList.remove('hidden');
-            } else {
-                alert("Wrong password, Agent.");
-            }
-        }
+        const form = document.getElementById('upload-form');
+        const status = document.getElementById('status');
 
-        document.getElementById('product-form').onsubmit = async (e) => {
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('submit-btn');
-            btn.innerText = "UPLOADING TO CLOUD...";
-            btn.disabled = true;
+            status.innerText = "Processing...";
+            status.className = "mt-4 text-center font-bold text-gray-400";
 
-            const name = document.getElementById('product-name').value;
-            const price = document.getElementById('product-price').value;
-            const category = document.getElementById('product-category').value;
-            const imageFile = document.getElementById('product-image').files[0];
+            const name = document.getElementById('name').value;
+            const price = parseFloat(document.getElementById('price').value);
+            const old_price = document.getElementById('old_price').value ? parseFloat(document.getElementById('old_price').value) : null;
+            const category = document.getElementById('category').value;
+            const image_url = document.getElementById('image_url').value;
 
-            try {
-                // 1. Upload Image to Storage Bucket
-                const fileName = `${Date.now()}-${imageFile.name}`;
-                const { data: uploadData, error: uploadError } = await _supabase.storage
-                    .from('product-images')
-                    .upload(fileName, imageFile);
+            const { data, error } = await _supabase
+                .from('products')
+                .insert([
+                    { name, price, old_price, category, image_url }
+                ]);
 
-                if (uploadError) throw uploadError;
-
-                // 2. Get Public URL
-                const { data: urlData } = _supabase.storage
-                    .from('product-images')
-                    .getPublicUrl(fileName);
-
-                // 3. Save to Database
-                const { error: dbError } = await _supabase
-                    .from('products')
-                    .insert([{ 
-                        name: name, 
-                        price: price, 
-                        category: category, 
-                        image_url: urlData.publicUrl 
-                    }]);
-
-                if (dbError) throw dbError;
-
-                alert("Product live in the store!");
-                location.reload();
-
-            } catch (error) {
-                console.error(error);
-                alert("Critical error: " + error.message);
-                btn.innerText = "UPLOAD PRODUCT";
-                btn.disabled = false;
+            if (error) {
+                status.innerText = "Error: " + error.message;
+                status.className = "mt-4 text-center font-bold text-red-500";
+            } else {
+                status.innerText = "Successfully uploaded to NCS Store!";
+                status.className = "mt-4 text-center font-bold text-green-500";
+                form.reset();
             }
-        };
+        });
     </script>
 </body>
 </html>
