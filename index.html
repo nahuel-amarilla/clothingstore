@@ -6,11 +6,13 @@
     <title>NCS CLOTHING | Official Store</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=test&currency=USD"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    
     <style>
         body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .cart-sidebar { transition: transform 0.3s ease-in-out; transform: translateX(100%); }
-        .cart-sidebar.open { transform: translateX(0); }
+        .cart-sidebar { transition: transform 0.3s ease-in-out; }
+        .cart-open { transform: translateX(0) !important; }
     </style>
 </head>
 <body class="bg-white">
@@ -22,115 +24,149 @@
         </div>
     </nav>
 
-    <div id="cart-sidebar" class="fixed top-0 right-0 h-full w-full md:w-96 bg-white shadow-2xl z-[100] cart-sidebar p-8 flex flex-col">
+    <div id="cart-sidebar" class="fixed top-0 right-0 h-full w-full md:w-96 bg-white shadow-2xl z-[100] translate-x-full cart-sidebar p-8 flex flex-col border-l">
         <div class="flex justify-between items-center mb-8">
             <h2 class="text-2xl font-black italic">YOUR CART</h2>
-            <button id="close-cart" class="text-xl font-bold">✕</button>
+            <button id="close-cart" class="text-xl font-bold hover:text-red-500">✕</button>
         </div>
         
         <div id="cart-items" class="flex-grow overflow-y-auto space-y-4">
-            </div>
+            <p class="text-gray-400 text-center mt-10 uppercase text-[10px] tracking-widest">Your cart is empty</p>
+        </div>
 
         <div class="border-t pt-6 mt-6">
             <div class="flex justify-between text-xl font-black mb-6">
                 <span>TOTAL</span>
                 <span id="cart-total">$0</span>
             </div>
-            <button onclick="processPayment()" class="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition uppercase tracking-widest">
-                Checkout (Card/Debit)
-            </button>
-        </div>
-    </div>
-
-    <header class="text-center py-12">
-        <h2 class="text-7xl md:text-9xl font-black italic tracking-tighter">NCS</h2>
-        <p class="text-gray-400 uppercase tracking-[0.4em] text-[10px] mt-2">Premium Safety & Streetwear</p>
-    </header>
-
-    <main class="max-w-7xl mx-auto p-6 mb-20">
-        <div id="shop-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10"></div>
-    </main>
-
-    <script src="https://www.paypal.com/sdk/js?client-id=test&currency=USD"></script>
-
-<div id="cart-sidebar" class="fixed top-0 right-0 h-full w-full md:w-96 bg-white shadow-2xl z-[100] cart-sidebar p-8 flex flex-col translate-x-full transition-transform duration-300">
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-2xl font-black italic">YOUR CART</h2>
-            <button id="close-cart" class="text-xl font-bold">✕</button>
-        </div>
-        
-        <div id="cart-items" class="flex-grow overflow-y-auto space-y-4"></div>
-
-        <div class="border-t pt-6 mt-6">
-            <div class="flex justify-between text-xl font-black mb-6">
-                <span>TOTAL</span>
-                <span id="cart-total">$0</span>
-            </div>
-            
             <div id="paypal-button-container"></div>
         </div>
     </div>
 
-<script>
-    // ... (Tu configuración de Supabase y loadStore igual que antes) ...
+    <header class="text-center py-16 px-4">
+        <h2 class="text-6xl md:text-9xl font-black italic tracking-tighter mb-2">NCS</h2>
+        <p class="text-gray-400 uppercase tracking-[0.4em] text-[10px]">Premium Safety & Streetwear</p>
+    </header>
 
-    let cart = [];
+    <main class="max-w-7xl mx-auto p-6 mb-20">
+        <div id="shop-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 text-center">
+            <p class="col-span-full animate-pulse text-gray-400 uppercase text-xs">Loading collection...</p>
+        </div>
+    </main>
 
-    function updateCartUI() {
-        const container = document.getElementById('cart-items');
-        const totalElement = document.getElementById('cart-total');
-        const count = document.getElementById('cart-count');
-        
-        count.innerText = cart.length;
-        const total = cart.reduce((acc, item) => acc + item.price, 0);
-        totalElement.innerText = `$${total}`;
+    <script>
+        // 1. Configuración de Supabase
+        const _supabase = supabase.createClient('https://daoctgxvndqkjkethjcc.supabase.co', 'sb_publishable_G-9m4zalYE3mRzDpw2OiCQ_qFMxk9ec');
 
-        container.innerHTML = cart.map(item => `
-            <div class="flex justify-between items-center border-b pb-4">
-                <div>
-                    <p class="font-bold text-sm uppercase">${item.name}</p>
-                    <p class="text-gray-500 text-xs">$${item.price}</p>
-                </div>
-                <button onclick="removeFromCart(${item.cartId})" class="text-red-500 text-[10px] font-bold">REMOVE</button>
-            </div>
-        `).join('');
+        let cart = [];
 
-        // RENDERIZAR BOTONES DE PAYPAL SOLO SI HAY ITEMS
-        renderPayPalButtons(total);
-    }
+        // 2. Cargar productos de la base de datos
+        async function loadStore() {
+            const container = document.getElementById('shop-container');
+            const { data: products, error } = await _supabase
+                .from('products')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-    function renderPayPalButtons(totalAmount) {
-        // Limpiamos el contenedor para que no se dupliquen los botones
-        document.getElementById('paypal-button-container').innerHTML = "";
-        
-        if (totalAmount <= 0) return;
-
-        paypal.Buttons({
-            createOrder: (data, actions) => {
-                return actions.order.create({
-                    purchase_units: [{
-                        amount: {
-                            value: totalAmount.toString()
-                        }
-                    }]
-                });
-            },
-            onApprove: (data, actions) => {
-                return actions.order.capture().then(details => {
-                    alert('Transaction completed by ' + details.payer.name.given_name);
-                    cart = []; // Limpiar carrito tras el pago
-                    updateCartUI();
-                    document.getElementById('cart-sidebar').classList.remove('open');
-                });
+            if (error) {
+                container.innerHTML = `<p class="text-red-500">Error connecting to database.</p>`;
+                return;
             }
-        }).render('#paypal-button-container');
-    }
 
-    // Funciones de control de sidebar
-    document.getElementById('open-cart').onclick = () => document.getElementById('cart-sidebar').classList.add('open');
-    document.getElementById('close-cart').onclick = () => document.getElementById('cart-sidebar').classList.remove('open');
+            if (products.length === 0) {
+                container.innerHTML = `<p class="text-gray-400 col-span-full">No products found. Add some in /admin.html</p>`;
+                return;
+            }
 
-    // ... (El resto de tus funciones loadStore, addToCart, etc) ...
-</script>
+            container.innerHTML = products.map(p => `
+                <div class="group border border-gray-100 p-4 rounded-3xl hover:shadow-xl transition-all duration-500">
+                    <div class="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden mb-4 relative">
+                        <img src="${p.image_url}" alt="${p.name}" class="w-full h-full object-cover group-hover:scale-110 transition duration-700">
+                        <button onclick="addToCart('${p.id}', '${p.name}', ${p.price})" 
+                                class="absolute bottom-4 left-4 right-4 bg-black text-white py-3 rounded-xl font-bold text-[10px] opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 uppercase">
+                            Add to Cart +
+                        </button>
+                    </div>
+                    <h3 class="font-bold text-xs uppercase tracking-widest text-gray-400 mb-1">${p.category || 'Collection'}</h3>
+                    <p class="font-black text-lg uppercase tracking-tight">${p.name}</p>
+                    <p class="text-gray-900 font-bold">$${p.price}</p>
+                </div>
+            `).join('');
+        }
+
+        // 3. Funciones del Carrito
+        function addToCart(id, name, price) {
+            const cartId = Date.now(); // ID único para poder borrar el item exacto
+            cart.push({ id, name, price, cartId });
+            updateCartUI();
+            document.getElementById('cart-sidebar').classList.add('cart-open');
+        }
+
+        function removeFromCart(cartId) {
+            cart = cart.filter(item => item.cartId !== cartId);
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cart-items');
+            const totalElement = document.getElementById('cart-total');
+            const count = document.getElementById('cart-count');
+            
+            count.innerText = cart.length;
+            const total = cart.reduce((acc, item) => acc + item.price, 0);
+            totalElement.innerText = `$${total}`;
+
+            if (cart.length === 0) {
+                container.innerHTML = `<p class="text-gray-400 text-center mt-10 uppercase text-[10px] tracking-widest">Your cart is empty</p>`;
+                document.getElementById('paypal-button-container').innerHTML = "";
+                return;
+            }
+
+            container.innerHTML = cart.map(item => `
+                <div class="flex justify-between items-center border-b pb-4">
+                    <div>
+                        <p class="font-black text-xs uppercase">${item.name}</p>
+                        <p class="text-gray-500 text-xs">$${item.price}</p>
+                    </div>
+                    <button onclick="removeFromCart(${item.cartId})" class="text-red-500 text-[10px] font-black hover:underline">REMOVE</button>
+                </div>
+            `).join('');
+
+            // Actualizar botones de PayPal
+            renderPayPalButtons(total);
+        }
+
+        // 4. Integración de PayPal
+        function renderPayPalButtons(totalAmount) {
+            const btnContainer = document.getElementById('paypal-button-container');
+            btnContainer.innerHTML = ""; // Limpiar
+            
+            if (totalAmount <= 0) return;
+
+            paypal.Buttons({
+                style: { layout: 'vertical', color: 'black', shape: 'rect', label: 'checkout' },
+                createOrder: (data, actions) => {
+                    return actions.order.create({
+                        purchase_units: [{ amount: { value: totalAmount.toString() } }]
+                    });
+                },
+                onApprove: (data, actions) => {
+                    return actions.order.capture().then(details => {
+                        alert('Order successful! Thanks, ' + details.payer.name.given_name);
+                        cart = [];
+                        updateCartUI();
+                        document.getElementById('cart-sidebar').classList.remove('cart-open');
+                    });
+                }
+            }).render('#paypal-button-container');
+        }
+
+        // 5. Controles de la Barra Lateral
+        document.getElementById('open-cart').onclick = () => document.getElementById('cart-sidebar').classList.add('cart-open');
+        document.getElementById('close-cart').onclick = () => document.getElementById('cart-sidebar').classList.remove('cart-open');
+
+        // Arrancar la tienda
+        loadStore();
+    </script>
 </body>
 </html>
