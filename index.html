@@ -10,100 +10,201 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .sidebar { transition: transform 0.3s ease; z-index: 100; }
+        .sidebar { transition: transform 0.3s ease-in-out; z-index: 100; }
         .sidebar-open { transform: translateX(0) !important; }
-        .admin-controls { display: none; } /* Solo para el jefe */
+        .admin-only { display: none; }
     </style>
 </head>
-<body class="bg-white text-black">
+<body class="bg-white text-black text-[10px] md:text-xs">
 
     <nav class="p-4 md:p-6 grid grid-cols-3 items-center border-b sticky top-0 bg-white/90 backdrop-blur-md z-[60]">
-        <div class="flex gap-4 items-center">
-            <button id="open-menu" class="text-xl font-bold">☰</button>
-            <button id="auth-btn" class="hidden md:block text-[9px] font-black uppercase tracking-widest border border-black px-3 py-1 rounded-full hover:bg-black hover:text-white transition">Sign In</button>
+        <div class="flex gap-3 items-center">
+            <button id="btn-menu" class="text-xl font-bold">☰</button>
+            <button id="btn-auth" class="hidden md:block border border-black px-3 py-1 rounded-full font-black uppercase tracking-tighter hover:bg-black hover:text-white transition">Account</button>
         </div>
-        
         <h1 class="text-lg md:text-2xl font-black tracking-tighter italic text-center uppercase">NCS CLOTHING</h1>
-        
-        <div class="flex items-center justify-end gap-3">
-            <div id="open-cart" class="cursor-pointer bg-black text-white px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest">
+        <div class="flex justify-end">
+            <div id="btn-cart" class="cursor-pointer bg-black text-white px-4 py-2 rounded-full font-bold uppercase tracking-widest">
                 Cart (<span id="cart-count">0</span>)
             </div>
         </div>
     </nav>
 
-    <div id="auth-sidebar" class="fixed top-0 left-0 h-full w-full md:w-80 bg-white shadow-2xl -translate-x-full sidebar p-8 flex flex-col border-r z-[110]">
+    <div id="side-menu" class="fixed top-0 left-0 h-full w-72 bg-white shadow-2xl -translate-x-full sidebar p-8 flex flex-col border-r">
         <div class="flex justify-between items-center mb-10">
-            <h2 id="auth-title" class="text-2xl font-black italic uppercase">Account</h2>
-            <button id="close-auth" class="text-xl font-bold text-gray-400">✕</button>
+            <h2 class="text-xl font-black italic uppercase">Menu</h2>
+            <button id="close-menu" class="text-xl">✕</button>
         </div>
-        
-        <div id="auth-form" class="space-y-4">
-            <input type="email" id="user-email" placeholder="EMAIL" class="w-full p-4 border rounded-xl text-xs font-bold outline-none bg-gray-50">
-            <input type="password" id="user-pass" placeholder="PASSWORD" class="w-full p-4 border rounded-xl text-xs font-bold outline-none bg-gray-50">
-            <button onclick="handleAuth('login')" class="w-full bg-black text-white py-4 rounded-xl font-black text-[10px] uppercase">Login</button>
-            <button onclick="handleAuth('signup')" class="w-full border border-gray-200 py-4 rounded-xl font-black text-[10px] uppercase text-gray-400 hover:text-black hover:border-black">Create Account</button>
-        </div>
+        <nav class="space-y-6">
+            <button onclick="filterProducts('all')" class="block text-2xl font-bold hover:italic">ALL</button>
+            <button onclick="filterProducts('T-Shirts')" class="block text-2xl font-bold text-gray-400 hover:text-black">T-SHIRTS</button>
+            <button onclick="filterProducts('Pants')" class="block text-2xl font-bold text-gray-400 hover:text-black">PANTS</button>
+            <button onclick="filterProducts('Jackets')" class="block text-2xl font-bold text-gray-400 hover:text-black">JACKETS</button>
+        </nav>
+        <button id="btn-auth-mobile" class="mt-auto border border-black p-4 rounded-xl font-black uppercase md:hidden">My Account</button>
+    </div>
 
-        <div id="user-info" class="hidden text-center">
-            <p class="text-[10px] font-bold text-gray-400 mb-4">LOGGED IN AS:</p>
-            <p id="logged-email" class="font-black text-sm mb-6"></p>
-            <a href="admin.html" id="admin-link" class="hidden block w-full bg-blue-600 text-white py-4 rounded-xl font-black text-[10px] uppercase mb-3">Admin Panel</a>
-            <button onclick="logout()" class="w-full bg-red-50 text-red-500 py-4 rounded-xl font-black text-[10px] uppercase">Logout</button>
+    <div id="side-auth" class="fixed top-0 left-0 h-full w-72 bg-white shadow-2xl -translate-x-full sidebar p-8 flex flex-col border-r z-[110]">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xl font-black italic uppercase text-blue-600">Account</h2>
+            <button id="close-auth" class="text-xl">✕</button>
+        </div>
+        <div id="auth-inputs" class="space-y-4">
+            <input type="email" id="email" placeholder="EMAIL" class="w-full p-3 border rounded-lg bg-gray-50 outline-none">
+            <input type="password" id="pass" placeholder="PASSWORD" class="w-full p-3 border rounded-lg bg-gray-50 outline-none">
+            <button onclick="authAction('login')" class="w-full bg-black text-white py-3 rounded-lg font-black uppercase">Login</button>
+            <button onclick="authAction('signup')" class="w-full border py-3 rounded-lg font-black uppercase text-gray-400 hover:text-black">Sign Up</button>
+        </div>
+        <div id="auth-logged" class="hidden text-center space-y-4">
+            <p class="font-black text-xs break-all" id="user-display"></p>
+            <a href="admin.html" id="admin-link" class="hidden block w-full bg-blue-600 text-white py-3 rounded-lg font-black uppercase">Admin Panel</a>
+            <button onclick="signOut()" class="w-full bg-red-50 text-red-500 py-3 rounded-lg font-black uppercase">Logout</button>
+        </div>
+    </div>
+
+    <div id="side-cart" class="fixed top-0 right-0 h-full w-full md:w-96 bg-white shadow-2xl translate-x-full sidebar p-8 flex flex-col border-l">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xl font-black italic uppercase">Cart</h2>
+            <button id="close-cart" class="text-xl">✕</button>
+        </div>
+        <div id="cart-list" class="flex-grow overflow-y-auto space-y-4"></div>
+        <div class="border-t pt-6">
+            <div class="flex justify-between text-xl font-black mb-6"><span>TOTAL</span><span id="cart-total">$0</span></div>
+            <div id="paypal-button-container"></div>
         </div>
     </div>
 
     <main class="max-w-7xl mx-auto p-4 md:p-6 mt-6 mb-20">
-        <div id="shop-container" class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-10"></div>
+        <div id="shop-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-6"></div>
     </main>
 
     <script>
         const _supabase = supabase.createClient('https://daoctgxvndqkjkethjcc.supabase.co', 'sb_publishable_G-9m4zalYE3mRzDpw2OiCQ_qFMxk9ec');
+        
+        // --- CAMBIA ESTO POR TU MAIL ---
+        const ADMIN_EMAIL = "ncssafety@hotmail.com"; 
 
-        // --- SISTEMA DE AUTENTICACIÓN ---
-        async function handleAuth(type) {
-            const email = document.getElementById('user-email').value;
-            const password = document.getElementById('user-pass').value;
+        let allProducts = [];
+        let cart = [];
 
-            if (type === 'signup') {
-                const { error } = await _supabase.auth.signUp({ email, password });
-                if (error) alert(error.message); else alert("Check your email or try logging in!");
-            } else {
-                const { error } = await _supabase.auth.signInWithPassword({ email, password });
-                if (error) alert(error.message); else window.location.reload();
-            }
+        // 1. CARGAR PRODUCTOS
+        async function loadStore() {
+            const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
+            if (error) return console.error(error);
+            allProducts = data;
+            renderProducts(allProducts);
+            checkUser();
         }
 
-        async function logout() {
-            await _supabase.auth.signOut();
-            window.location.reload();
+        function renderProducts(products) {
+            const grid = document.getElementById('shop-grid');
+            grid.innerHTML = products.map(p => {
+                const sale = p.old_price && p.old_price > p.price;
+                return `
+                <div class="group relative" id="item-${p.id}">
+                    <div class="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden mb-3 relative">
+                        ${sale ? `<span class="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-bold px-2 py-1 rounded-full z-10 uppercase">Sale</span>` : ''}
+                        <button onclick="deleteProd('${p.id}')" class="admin-only absolute top-2 right-2 bg-white p-2 rounded-full z-20 shadow-lg">✕</button>
+                        <img src="${p.image_url}" class="w-full h-full object-cover group-hover:scale-105 transition duration-700">
+                        <button onclick="addToCart('${p.id}', '${p.name}', ${p.price})" class="absolute bottom-2 left-2 right-2 bg-black text-white py-3 rounded-xl font-bold text-[9px] uppercase opacity-0 group-hover:opacity-100 transition-all">Add +</button>
+                    </div>
+                    <h3 class="font-bold uppercase truncate">${p.name}</h3>
+                    <div class="flex gap-2">
+                        <p class="font-black">$${p.price}</p>
+                        ${sale ? `<p class="text-gray-400 line-through font-bold">$${p.old_price}</p>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
         }
+
+        // 2. SISTEMA AUTH
+        async function authAction(type) {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('pass').value;
+            if(!email || !password) return alert("Fill all fields");
+            
+            const { data, error } = (type === 'login') 
+                ? await _supabase.auth.signInWithPassword({ email, password })
+                : await _supabase.auth.signUp({ email, password });
+
+            if (error) alert(error.message); else window.location.reload();
+        }
+
+        async function signOut() { await _supabase.auth.signOut(); window.location.reload(); }
 
         async function checkUser() {
             const { data: { user } } = await _supabase.auth.getUser();
-            const authBtn = document.getElementById('auth-btn');
-            
             if (user) {
-                authBtn.innerText = "MY ACCOUNT";
-                document.getElementById('auth-form').classList.add('hidden');
-                document.getElementById('user-info').classList.remove('hidden');
-                document.getElementById('logged-email').innerText = user.email;
-
-                // CAMBIA ESTO: Poné acá el mail que vas a usar vos para ser Admin
-                if (user.email === "ncssafety@hotmail.com") {
+                document.getElementById('auth-inputs').classList.add('hidden');
+                document.getElementById('auth-logged').classList.remove('hidden');
+                document.getElementById('user-display').innerText = user.email;
+                if (user.email === ADMIN_EMAIL) {
                     document.getElementById('admin-link').classList.remove('hidden');
-                    // Mostrar botones de borrar en la tienda
-                    const deleteBtns = document.getElementsByClassName('admin-only');
-                    for(let btn of deleteBtns) btn.style.display = 'block';
+                    document.querySelectorAll('.admin-only').forEach(b => b.style.display = 'block');
                 }
-            } else {
-                authBtn.innerText = "SIGN IN";
             }
         }
 
-        // --- LÓGICA DE TIENDA (Copia del código anterior) ---
-        // (Asegurate de incluir aquí las funciones loadStore, renderProducts, addToCart, PayPal, etc.)
-        // Nota: Agregué la clase 'admin-only' a los botones de borrar en renderProducts
+        // 3. CARRITO Y PAYPAL
+        function addToCart(id, name, price) {
+            cart.push({ id, name, price, cartId: Date.now() });
+            updateUI();
+            document.getElementById('side-cart').classList.add('sidebar-open');
+        }
+
+        function updateUI() {
+            const list = document.getElementById('cart-list');
+            document.getElementById('cart-count').innerText = cart.length;
+            const total = cart.reduce((a, b) => a + b.price, 0);
+            document.getElementById('cart-total').innerText = `$${total}`;
+            
+            list.innerHTML = cart.length ? cart.map(i => `
+                <div class="flex justify-between items-center border-b pb-4">
+                    <p class="font-black uppercase w-2/3 truncate">${i.name}</p>
+                    <button onclick="removeItem(${i.cartId})" class="text-red-500 font-bold">✕</button>
+                </div>`).join('') : '<p class="text-center text-gray-400">Empty</p>';
+
+            renderPayPal(total);
+        }
+
+        function removeItem(cid) { cart = cart.filter(i => i.cid !== cid); updateUI(); }
+
+        function renderPayPal(total) {
+            const container = document.getElementById('paypal-button-container');
+            container.innerHTML = "";
+            if (total <= 0) return;
+            paypal.Buttons({
+                style: { layout: 'vertical', color: 'black', shape: 'rect' },
+                createOrder: (d, a) => a.order.create({ purchase_units: [{ amount: { value: total.toString() } }] }),
+                onApprove: (d, a) => a.order.capture().then(() => { alert('Success!'); cart = []; updateUI(); })
+            }).render('#paypal-button-container');
+        }
+
+        // 4. ELIMINAR (ADMIN)
+        async function deleteProd(id) {
+            if(!confirm("Delete item?")) return;
+            const { error } = await _supabase.from('products').delete().eq('id', id);
+            if(!error) document.getElementById(`item-${id}`).remove();
+        }
+
+        // 5. FILTROS
+        function filterProducts(cat) {
+            document.getElementById('side-menu').classList.remove('sidebar-open');
+            renderProducts(cat === 'all' ? allProducts : allProducts.filter(p => p.category === cat));
+        }
+
+        // 6. CONTROLES SIDEBARS
+        const toggle = (id, action) => document.getElementById(id).classList[action]('sidebar-open');
+        
+        document.getElementById('btn-menu').onclick = () => toggle('side-menu', 'add');
+        document.getElementById('close-menu').onclick = () => toggle('side-menu', 'remove');
+        document.getElementById('btn-cart').onclick = () => toggle('side-cart', 'add');
+        document.getElementById('close-cart').onclick = () => toggle('side-cart', 'remove');
+        document.getElementById('btn-auth').onclick = () => toggle('side-auth', 'add');
+        document.getElementById('btn-auth-mobile').onclick = () => { toggle('side-menu', 'remove'); toggle('side-auth', 'add'); };
+        document.getElementById('close-auth').onclick = () => toggle('side-auth', 'remove');
+
+        loadStore();
     </script>
 </body>
 </html>
